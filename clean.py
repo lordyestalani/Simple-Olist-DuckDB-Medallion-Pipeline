@@ -20,5 +20,8 @@ result = duckdb.sql("""
     ON p.product_category_name = t.product_category_name
 """)
 
-print(result.columns)
-print(result.limit(3).fetchall())
+output_path = "data/silver/order_items.parquet"
+result.write_parquet(output_path)
+
+silver = duckdb.read_parquet(output_path)
+print(silver.count("*").fetchall())
