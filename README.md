@@ -44,16 +44,18 @@ Merchandise sales sum item prices in Brazilian reais (BRL). The freight report d
 | February 2018 | 6,728 | 7,672 | 651 | R$826,437.13 | R$139,731.28 |
 | March 2018 | 7,211 | 8,217 | 680 | R$953,356.25 | R$167,241.99 |
 
-After loading all three months, rerunning January preserved the Silver and Gold row counts and every value in the 2,026 Gold rows. The Gold comparison sorted by month, category, and state before comparing the rows. The [automated rerun test](tests/test_pipeline.py) also passed using small CSVs in a temporary project.
+After loading all three months, rerunning January preserved the Silver and Gold row counts and every value in the 2,026 Gold rows. The Gold comparison sorted by month, category, and state before comparing the rows.
+
+The [automated pipeline test](tests/test_pipeline.py) uses small CSVs in a temporary project. It verifies which orders and items land in the January Bronze batches, checks that Silver preserves each item key exactly once, and compares Gold sales and freight against exact expected totals. It also verifies that rerunning January preserves the January and February Gold rows.
 
 ## Milestones
 
 - [x] Build the January pipeline from the source CSVs through Gold and verify three SQL reports.
 - [x] Add a monthly runner, backfill February and March, and verify the January rerun.
 - [x] Add an automated rerun test with sample CSVs.
-- [ ] Add explicit Bronze tests for orders and items on either side of the month boundary.
-- [ ] Add tests for Silver join cardinality and expected Gold sales and freight values.
-- [ ] Package the pipeline in Docker and verify it from a clean checkout.
+- [x] Check the month boundary in the January Bronze orders and items batches.
+- [x] Check Silver join cardinality and exact Gold sales and freight values.
+- [ ] **Next milestone:** Package the pipeline in Docker and verify it from a clean checkout.
 - [ ] Expand this README with tested setup, pipeline, report, and test commands.
 
 Optional follow-ups include scheduling monthly backfills with an Airflow DAG and exploring the Gold data in Power BI.
