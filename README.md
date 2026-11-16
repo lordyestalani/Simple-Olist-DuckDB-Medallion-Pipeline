@@ -48,6 +48,44 @@ After loading all three months, rerunning January preserved the Silver and Gold 
 
 The [automated pipeline test](tests/test_pipeline.py) uses small CSVs in a temporary project. It verifies which orders and items land in the January Bronze batches, checks that Silver preserves each item key exactly once, and compares Gold sales and freight against exact expected totals. It also verifies that rerunning January preserves the January and February Gold rows.
 
+## Reproduce the demo
+
+Run these commands in PowerShell from the root of a fresh checkout with Docker running. Build the image and copy the five source CSVs to a temporary data folder.
+
+```powershell
+docker build -t olist-pipeline .
+
+$demoData = Join-Path ([System.IO.Path]::GetTempPath()) ("olist-docker-" + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $demoData | Out-Null
+Copy-Item -LiteralPath .\data\source -Destination (Join-Path $demoData "source") -Recurse
+
+docker run --rm --mount "type=bind,source=$demoData,target=/app/data" olist-pipeline 2018-01
+Get-ChildItem -LiteralPath (Join-Path $demoData "gold") -Name
+```
+
+The container writes Bronze, Silver, and Gold to `$demoData`. A clean-checkout run produced 8,208 Silver items, 695 Gold rows, and `monthly_category_state_sales.parquet` in the Gold folder. To reproduce the three-month demo, run the same command with `2018-02` and `2018-03`, keeping the same `$demoData` folder.
+
+Run the automated test in the same image. The test creates its own source CSVs.
+
+```powershell
+docker run --rm --entrypoint python olist-pipeline -m unittest discover -s tests -v
+```
+
+### Query the reports locally
+
+With Python 3.11 available, create an environment and install the same DuckDB release used in Docker.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+From the repository root, preview three rows from the report using the Gold file committed with the demo. Change the SQL filename to run either of the other reports.
+
+```powershell
+.\.venv\Scripts\python.exe -c "from pathlib import Path; import duckdb; print(duckdb.sql(Path('reports/monthly_category_sales.sql').read_text(encoding='utf-8-sig')).limit(3).fetchall())"
+```
+
 ## Milestones
 
 - [x] Build the January pipeline from the source CSVs through Gold and verify three SQL reports.
@@ -55,8 +93,8 @@ The [automated pipeline test](tests/test_pipeline.py) uses small CSVs in a tempo
 - [x] Add an automated rerun test with sample CSVs.
 - [x] Check the month boundary in the January Bronze orders and items batches.
 - [x] Check Silver join cardinality and exact Gold sales and freight values.
-- [ ] **Next milestone:** Package the pipeline in Docker and verify it from a clean checkout.
-- [ ] Expand this README with tested setup, pipeline, report, and test commands.
+- [x] Package the pipeline in Docker, run the test in the image, and verify January from a clean checkout.
+- [x] Document how to build the image, run a backfill, run the test, and query the reports.
 
 Optional follow-ups include scheduling monthly backfills with an Airflow DAG and exploring the Gold data in Power BI.
 
