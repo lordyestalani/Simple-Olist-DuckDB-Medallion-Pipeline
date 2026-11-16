@@ -20,6 +20,7 @@ class PipelineTest(unittest.TestCase):
                 "order_id,order_item_id,product_id,price,freight_value\n"
                 "jan,1,p1,20.00,5.00\n"
                 "feb,1,p1,40.00,8.00\n"
+                "feb,2,p1,10.00,2.00\n"
             ),
             "olist_customers_dataset.csv": "customer_id,customer_state\nc1,SP\n",
             "olist_products_dataset.csv": "product_id,product_category_name\np1,livros\n",
@@ -59,6 +60,14 @@ class PipelineTest(unittest.TestCase):
                     rows = duckdb.read_csv(str(bronze / batch)).project("order_id")
                     self.assertEqual(rows.fetchall(), [("jan",)])
             run("2018-02")
+            silver_path = temp_project / "data/silver/order_items.parquet"
+            silver_keys = (
+                duckdb.read_parquet(str(silver_path))
+                .project("order_id, order_item_id")
+                .order("order_id, order_item_id")
+                .fetchall()
+            )
+            self.assertEqual(silver_keys, [("feb", 1), ("feb", 2), ("jan", 1)])
             before = gold_rows()
             self.assertEqual(len(before), 2)
 
