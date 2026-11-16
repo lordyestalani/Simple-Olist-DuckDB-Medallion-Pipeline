@@ -12,4 +12,8 @@ summary = duckdb.sql("""
     GROUP BY purchase_month, product_category, customer_state
 """)
 
-print(summary.count("*").fetchall())
+output_path = "data/gold/monthly_category_state_sales.parquet"
+summary.write_parquet(output_path)
+
+gold = duckdb.read_parquet(output_path)
+print(gold.count("*").fetchall())
