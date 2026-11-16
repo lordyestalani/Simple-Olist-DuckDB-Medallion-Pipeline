@@ -50,6 +50,14 @@ class PipelineTest(unittest.TestCase):
                 return duckdb.read_parquet(str(path)).order("purchase_month").fetchall()
 
             run("2018-01")
+            bronze = temp_project / "data/bronze"
+            for batch in (
+                "orders/orders_2018-01.csv",
+                "order_items/order_items_2018-01.csv",
+            ):
+                with self.subTest(batch=batch):
+                    rows = duckdb.read_csv(str(bronze / batch)).project("order_id")
+                    self.assertEqual(rows.fetchall(), [("jan",)])
             run("2018-02")
             before = gold_rows()
             self.assertEqual(len(before), 2)
