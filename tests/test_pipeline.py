@@ -1,3 +1,5 @@
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from shutil import copy2
 import subprocess
@@ -69,7 +71,13 @@ class PipelineTest(unittest.TestCase):
             )
             self.assertEqual(silver_keys, [("feb", 1), ("feb", 2), ("jan", 1)])
             before = gold_rows()
-            self.assertEqual(len(before), 2)
+            self.assertEqual(
+                before,
+                [
+                    (date(2018, 1, 1), "books", "SP", Decimal("20.00"), Decimal("5.00")),
+                    (date(2018, 2, 1), "books", "SP", Decimal("50.00"), Decimal("10.00")),
+                ],
+            )
 
             run("2018-01")
             self.assertEqual(gold_rows(), before)
