@@ -86,6 +86,17 @@ From the repository root, preview three rows from the report using the Gold file
 .\.venv\Scripts\python.exe -c "from pathlib import Path; import duckdb; print(duckdb.sql(Path('reports/monthly_category_sales.sql').read_text(encoding='utf-8-sig')).limit(3).fetchall())"
 ```
 
+## Power BI report
+
+**Sales in motion** visualizes delivered orders from January through March 2018. Use the month and category filters to explore the sales trend, sales rankings by category and customer state, and freight charges as a share of merchandise sales.
+
+![Sales in motion Power BI report showing the Q1 2018 merchandise sales trend, freight totals, and rankings](docs/powerbi-sales-and-freight.png)
+
+1. Open [`powerbi/OlistGold.pbip`](powerbi/OlistGold.pbip) in Power BI Desktop.
+2. Select **Home → Refresh** on first open to load the embedded Gold snapshot.
+
+The report uses the 2,026 rows from the verified Gold Parquet snapshot. Refresh loads that copy into Power BI. Incorporating a new backfill requires updating the embedded snapshot.
+
 ## Milestones
 
 - [x] Build the January pipeline from the source CSVs through Gold and verify three SQL reports.
@@ -95,8 +106,9 @@ From the repository root, preview three rows from the report using the Gold file
 - [x] Check Silver join cardinality and exact Gold sales and freight values.
 - [x] Package the pipeline in Docker, run the test in the image, and verify January from a clean checkout.
 - [x] Document how to build the image, run a backfill, run the test, and query the reports.
+- [x] Build and verify the Power BI report against the Gold snapshot.
 
-Optional follow-ups include scheduling monthly backfills with an Airflow DAG and exploring the Gold data in Power BI.
+An optional follow-up is to schedule monthly backfills with an Airflow DAG.
 
 ## Data attribution
 
