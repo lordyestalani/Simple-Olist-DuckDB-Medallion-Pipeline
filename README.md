@@ -4,6 +4,59 @@ A local data engineering demo built with Python, DuckDB SQL, and Parquet. It tur
 
 The source is a fixed snapshot. The pipeline simulates a historical backfill by selecting one purchase month at a time. It replaces that month’s Bronze batches on rerun, then rebuilds Silver and Gold from all months currently loaded in Bronze.
 
+## Start the Airflow sandbox
+
+With Docker Desktop running, start the sandbox from the repository root:
+
+```powershell
+docker compose up -d --build
+```
+
+The single container includes Airflow, DuckDB, the pipeline scripts, and the five source CSVs. Docker initializes the `olist-data` volume with the source files and keeps the generated outputs there. The `airflow-state` volume keeps Airflow’s settings and run history. `docker compose down` stops the sandbox and preserves both volumes.
+
+### Try the pipeline by hand
+
+The DAG starts paused on a fresh setup. Keep it paused while experimenting in the shell so scheduled runs and manual commands take turns writing the shared files.
+
+```powershell
+docker compose exec airflow bash
+```
+
+Inside the container, pick a purchase month and run each stage separately. Here’s January as an example:
+
+```bash
+python backfill.py 2018-01
+ls data/bronze/orders data/bronze/order_items
+
+python clean.py
+ls data/silver
+
+python aggregate.py
+ls data/gold
+```
+
+Try another month by changing the argument to `backfill.py`. Silver and Gold rebuild from the months you’ve loaded. To query the Gold output you just generated, run:
+
+```bash
+python -c "from pathlib import Path; import duckdb; print(duckdb.sql(Path('reports/monthly_category_sales.sql').read_text()).limit(3).fetchall())"
+```
+
+### Try a scheduled backfill
+
+Open the [Airflow UI](http://localhost:8080) and sign in as `admin`. Get the generated password from your local terminal:
+
+```powershell
+docker compose exec airflow cat /opt/airflow/simple_auth_manager_passwords.json.generated
+```
+
+Unpause `olist_backfill` when you’re ready for Airflow to take over. Every five minutes, `select_month` picks the next purchase month in its configured list and `backfill_month` runs `run.py` for it. The task records completed scheduled months in `data/.scheduled_backfills/` on the data volume. To rerun a particular month, use **Trigger** in the Airflow UI and set the `month` field.
+
+The verified schedule processed January, February, and March 2018 in order. The following tick showed **Skipped** for both tasks because every month in the list had completed. Airflow still showed **Success** for the overall run.
+
+![Airflow task log showing the scheduled March 2018 backfill succeeded](docs/airflow-scheduled-backfill.png)
+
+To experiment with the cadence or month list, edit `schedule` or the default `scheduled_months` in [`dags/olist_backfill.py`](dags/olist_backfill.py), then run `docker compose up -d --build` again.
+
 ## Source data
 
 The original CSVs are in [`data/source/`](data/source/).
@@ -48,30 +101,7 @@ After loading all three months, rerunning January preserved the Silver and Gold 
 
 The [automated pipeline test](tests/test_pipeline.py) uses small CSVs in a temporary project. It verifies which orders and items land in the January Bronze batches, checks that Silver preserves each item key exactly once, and compares Gold sales and freight against exact expected totals. It also verifies that rerunning January preserves the January and February Gold rows.
 
-## Reproduce the demo
-
-Run these commands in PowerShell from the root of a fresh checkout with Docker running. Build the image and copy the five source CSVs to a temporary data folder.
-
-```powershell
-docker build -t olist-pipeline .
-
-$demoData = Join-Path ([System.IO.Path]::GetTempPath()) ("olist-docker-" + [guid]::NewGuid())
-New-Item -ItemType Directory -Path $demoData | Out-Null
-Copy-Item -LiteralPath .\data\source -Destination (Join-Path $demoData "source") -Recurse
-
-docker run --rm --mount "type=bind,source=$demoData,target=/app/data" olist-pipeline 2018-01
-Get-ChildItem -LiteralPath (Join-Path $demoData "gold") -Name
-```
-
-The container writes Bronze, Silver, and Gold to `$demoData`. A clean-checkout run produced 8,208 Silver items, 695 Gold rows, and `monthly_category_state_sales.parquet` in the Gold folder. To reproduce the three-month demo, run the same command with `2018-02` and `2018-03`, keeping the same `$demoData` folder.
-
-Run the automated test in the same image. The test creates its own source CSVs.
-
-```powershell
-docker run --rm --entrypoint python olist-pipeline -m unittest discover -s tests -v
-```
-
-### Query the reports locally
+## Run reports and tests locally
 
 With Python 3.11 available, create an environment and install the same DuckDB release used in Docker.
 
@@ -84,6 +114,12 @@ From the repository root, preview three rows from the report using the Gold file
 
 ```powershell
 .\.venv\Scripts\python.exe -c "from pathlib import Path; import duckdb; print(duckdb.sql(Path('reports/monthly_category_sales.sql').read_text(encoding='utf-8-sig')).limit(3).fetchall())"
+```
+
+To run the automated pipeline test:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
 ## Power BI report
@@ -107,8 +143,7 @@ The report uses the 2,026 rows from the verified Gold Parquet snapshot. Refresh 
 - [x] Package the pipeline in Docker, run the test in the image, and verify January from a clean checkout.
 - [x] Document how to build the image, run a backfill, run the test, and query the reports.
 - [x] Build and verify the Power BI report against the Gold snapshot.
-
-An optional follow-up is to schedule monthly backfills with an Airflow DAG.
+- [x] Package the single-container Airflow sandbox and verify the manual and scheduled workflows.
 
 ## Data attribution
 
