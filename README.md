@@ -57,6 +57,26 @@ The verified schedule processed January, February, and March 2018 in order. The 
 
 To experiment with the cadence or month list, edit `schedule` or the default `scheduled_months` in [`dags/olist_backfill.py`](dags/olist_backfill.py), then run `docker compose up -d --build` again.
 
+## Repository layout
+
+```text
+.
+├── compose.yaml         # Starts the single-container Airflow sandbox
+├── Dockerfile.airflow   # Builds the sandbox with the pipeline and source CSVs
+├── Dockerfile           # Builds the standalone pipeline image
+├── requirements.txt    # Pinned DuckDB dependency
+├── backfill.py          # Selects a purchase month and writes Bronze CSVs
+├── clean.py             # Joins the Bronze data and writes Silver Parquet
+├── aggregate.py         # Summarizes sales and freight in Gold Parquet
+├── run.py               # Runs all three stages for a chosen month
+├── dags/                # Airflow workflow for manual and scheduled backfills
+├── data/                # Original inputs and Bronze, Silver, and Gold files
+├── reports/             # DuckDB SQL queries against Gold
+├── powerbi/             # Editable Power BI project
+├── docs/                # Airflow and Power BI screenshots
+└── tests/               # Pipeline checks using small CSVs
+```
+
 ## Source data
 
 The original CSVs are in [`data/source/`](data/source/).
