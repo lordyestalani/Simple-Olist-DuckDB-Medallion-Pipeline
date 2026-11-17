@@ -1,9 +1,12 @@
+from pendulum import datetime
 from airflow.sdk import DAG, Param
 from airflow.providers.standard.operators.bash import BashOperator
 
 with DAG(
     dag_id="olist_backfill",
-    schedule=None,
+    schedule="*/5 * * * *",
+    start_date=datetime(2026, 1, 1, tz="UTC"),
+    catchup=False,
     max_active_runs=1,
     is_paused_upon_creation=True,
     params={
