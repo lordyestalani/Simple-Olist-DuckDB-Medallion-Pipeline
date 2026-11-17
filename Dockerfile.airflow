@@ -15,3 +15,6 @@ COPY data/source/ ./data/source/
 
 RUN mkdir -p data/bronze/orders data/bronze/order_items \
     data/bronze/reference data/silver data/gold
+
+COPY dags/ ./dags/
+ENV AIRFLOW__CORE__DAGS_FOLDER=/app/dags
