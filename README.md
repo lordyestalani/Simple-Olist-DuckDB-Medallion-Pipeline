@@ -153,6 +153,13 @@ To run the automated pipeline test:
 
 The report uses the 2,026 rows from the verified Gold Parquet snapshot. Refresh loads that copy into Power BI. Incorporating a new backfill requires updating the embedded snapshot.
 
+## What I learned
+
+- **Decide what one row represents.** I kept Silver at one row per order item and checked the item keys after joining. A row count alone can miss a join that drops one item and duplicates another.
+- **Test what happens when a job runs twice.** Rerunning January taught me to compare the actual Gold rows as well as the counts. That gave me a way to verify that a backfill preserved the results for all three months.
+- **Separate setup from scheduling.** Docker gave me the same environment from a fresh clone. Airflow let me schedule the scripts I had already tested by hand. When a run showed Success but repeated January, the logs helped me trace the missing completion marker.
+- **Check dashboard measures against SQL.** I verified the Power BI values against Gold and calculated freight share by dividing total freight by total merchandise sales.
+
 ## Milestones
 
 - [x] Build the January pipeline from the source CSVs through Gold and verify three SQL reports.
