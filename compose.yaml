@@ -1,0 +1,11 @@
+services:
+  airflow:
+    image: apache/airflow:3.4.0-python3.11
+    command: standalone
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - airflow-state:/opt/airflow
+
+volumes:
+  airflow-state:
