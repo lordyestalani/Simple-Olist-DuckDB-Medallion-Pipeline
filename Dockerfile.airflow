@@ -1,0 +1,17 @@
+FROM apache/airflow:3.4.0-python3.11
+
+USER root
+RUN install -d -o airflow -g 0 /app /app/data
+USER airflow
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN python -m pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" -r requirements.txt
+
+COPY backfill.py clean.py aggregate.py run.py ./
+COPY reports/ ./reports/
+COPY data/source/ ./data/source/
+
+RUN mkdir -p data/bronze/orders data/bronze/order_items \
+    data/bronze/reference data/silver data/gold
